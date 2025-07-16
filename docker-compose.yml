@@ -1,0 +1,59 @@
+# Configuração do Docker Compose para a plataforma Trampix.
+# Este arquivo define e orquestra os serviços (containers) necessários para o ambiente de desenvolvimento com Laravel.
+
+# Define a versão da sintaxe do Docker Compose.
+version: '3.8'
+
+# Define os serviços que compõem a aplicação.
+services:
+  # Serviço principal da aplicação, contendo PHP e Apache.
+  app:
+    # Configura a construção da imagem Docker para o serviço 'app'.
+    build:
+      context: ./docker/php # Caminho para o diretório que contém o Dockerfile.
+      dockerfile: Dockerfile # Nome do Dockerfile a ser utilizado.
+    # Mapeia a porta 80 do host para a porta 80 do container, permitindo acesso via http://localhost.
+    ports:
+      - "80:80"
+    # Define os volumes para persistência de dados e sincronização de código.
+    # Monta a pasta raiz do projeto Laravel (que será criada aqui) dentro do container PHP.
+    volumes:
+      - .:/var/www/html # Monta a pasta 'Trampix' no /var/www/html do container.
+      - ./docker/php/000-default.conf:/etc/apache2/sites-available/000-default.conf # Monta o arquivo de configuração do Apache.
+    # Garante que o serviço 'db' seja iniciado antes do serviço 'app'.
+    depends_on:
+      - db
+    # Define variáveis de ambiente para o container PHP, úteis para configurações do sistema ou do banco de dados.
+    environment:
+      # Variáveis para conexão com o banco de dados MySQL (Laravel as lê do .env)
+      DB_CONNECTION: mysql
+      DB_HOST: db
+      DB_PORT: 3306
+      DB_DATABASE: trampix_db
+      DB_USERNAME: user
+      DB_PASSWORD: aluno
+      # Outras variáveis de ambiente para o Laravel, se necessário
+      APP_ENV: local
+      APP_DEBUG: true
+
+  # Serviço do banco de dados MySQL.
+  db:
+    # Utiliza a imagem oficial do MySQL na versão 8.0.
+    image: mysql:8.0
+    # Mapeia a porta 3306 do host para a porta 3306 do container, permitindo acesso externo ao MySQL.
+    ports:
+      - "3306:3306"
+    # Define os volumes para persistência dos dados do banco e inicialização.
+    volumes:
+      - db_data:/var/lib/mysql # Persiste os dados do MySQL em um volume nomeado.
+      - ./docker/mysql/init.sql:/docker-entrypoint-initdb.d/init.sql # Executa o script SQL na inicialização do container.
+    # Define variáveis de ambiente para o container MySQL.
+    environment:
+      MYSQL_ROOT_PASSWORD: root_password
+      MYSQL_DATABASE: trampix_db
+      MYSQL_USER: user
+      MYSQL_PASSWORD: aluno
+
+# Define os volumes nomeados para persistência de dados.
+volumes:
+  db_data: # Volume para os dados do MySQL.
